@@ -8,7 +8,7 @@ function createAuthRouter({ passport, users }) {
   const { loginLimiter, signupLimiter } = createAuthRateLimiters();
 
   router.post("/sign-up", signupLimiter, async (req, res, next) => {
-    const { username, password } = req.body ?? {};
+    const { username, password, email } = req.body ?? {};
 
     if (typeof username !== "string" || typeof password !== "string") {
       return res.status(400).json({
@@ -36,12 +36,30 @@ function createAuthRouter({ passport, users }) {
       });
     }
 
+    if (typeof email !== "string") {
+      return res.status(400).json({
+        message: "Az e-mail-cím megadása kötelező.",
+      });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (
+      cleanEmail.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)
+    ) {
+      return res.status(400).json({
+        message: "Érvénytelen e-mail-cím.",
+      });
+    }
+
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       await users.create({
         username: cleanUsername,
         passwordHash: hashedPassword,
+        email: cleanEmail,
       });
 
       res.status(201).json({ message: "Sikeres regisztráció" });
@@ -49,6 +67,12 @@ function createAuthRouter({ passport, users }) {
       if (error.code === "USERNAME_TAKEN") {
         return res.status(409).json({
           message: "Ez a felhasználónév már foglalt.",
+        });
+      }
+
+      if (error.code === "EMAIL_TAKEN") {
+        return res.status(409).json({
+          message: "Ez az e-mail-cím már használatban van.",
         });
       }
 
@@ -92,11 +116,25 @@ function createAuthRouter({ passport, users }) {
       req.logIn(user, (error) => {
         if (error) return next(error);
 
-        res.json({
-          user: {
-            id: user.id,
-            username: user.username,
-          },
+        req.session.authMeta = {
+          loggedInAt: new Date().toISOString(),
+          browser: (req.get("user-agent") || "Ismeretlen böngésző").slice(
+            0,
+            500,
+          ),
+        };
+
+        req.session.save((error) => {
+          if (error) return next(error);
+
+          res.json({
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              emailVerified: Boolean(user.email_verified_at),
+            },
+          });
         });
       });
     })(req, res, next);
@@ -106,6 +144,8 @@ function createAuthRouter({ passport, users }) {
     res.json({
       id: req.user.id,
       username: req.user.username,
+      email: req.user.email,
+      emailVerified: Boolean(req.user.email_verified_at),
     });
   });
 

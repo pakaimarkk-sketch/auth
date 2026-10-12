@@ -37,8 +37,34 @@ async function postAuth(path, body) {
   return data;
 }
 
-export function signUp(username, password) {
-  return postAuth("/sign-up", { username, password });
+export function signUp(username, password, email) {
+  return postAuth("/sign-up", { username, password, email });
+}
+
+export function requestEmailVerification() {
+  return postAuth("/request-email-verification");
+}
+
+export function verifyEmail(token) {
+  return postAuth("/verify-email", { token });
+}
+
+export function changePassword(currentPassword, newPassword) {
+  return postAuth("/change-password", {
+    currentPassword,
+    newPassword,
+  });
+}
+
+export function forgotPassword(email) {
+  return postAuth("/forgot-password", { email });
+}
+
+export function resetPassword(token, newPassword) {
+  return postAuth("/reset-password", {
+    token,
+    newPassword,
+  });
 }
 
 export function logIn(username, password) {
@@ -63,4 +89,31 @@ export async function getCurrentUser() {
   }
 
   return response.json();
+}
+
+export async function getSessions() {
+  const response = await fetch(`${AUTH_URL}/sessions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Nem sikerült lekérni a sessionöket.");
+  }
+
+  return data.sessions;
+}
+
+export function revokeSession(id) {
+  return postAuth("/sessions/revoke", { id });
+}
+
+export function revokeOtherSessions() {
+  return postAuth("/sessions/revoke-others");
+}
+
+export function startGoogleLink(password) {
+  return postAuth("/google/link", { password });
 }

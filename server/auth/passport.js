@@ -7,7 +7,7 @@ function configurePassport(passport, users) {
       try {
         const user = await users.findByUsername(username);
 
-        if (!user) {
+        if (!user || !user.password) {
           return done(null, false);
         }
 
@@ -25,13 +25,25 @@ function configurePassport(passport, users) {
   );
 
   passport.serializeUser((user, done) => {
-    done(null, user.id);
+    done(null, {
+      id: user.id,
+      version: user.auth_version,
+    });
   });
 
-  passport.deserializeUser(async (id, done) => {
+  passport.deserializeUser(async (sessionUser, done) => {
     try {
-      const user = await users.findById(id);
-      done(null, user || false);
+      if (!sessionUser || typeof sessionUser !== "object") {
+        return done(null, false);
+      }
+
+      const user = await users.findById(sessionUser.id);
+
+      if (!user || user.auth_version !== sessionUser.version) {
+        return done(null, false);
+      }
+
+      done(null, user);
     } catch (error) {
       done(error);
     }

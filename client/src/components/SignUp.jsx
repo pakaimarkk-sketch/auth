@@ -7,6 +7,7 @@ export default function SignUp({ onSuccess }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -20,7 +21,7 @@ export default function SignUp({ onSuccess }) {
     setLoading(true);
 
     try {
-      await signUp(username, password);
+      await signUp(username, password, email);
     } catch (error) {
       setError(error.message);
       setLoading(false);
@@ -43,6 +44,17 @@ export default function SignUp({ onSuccess }) {
         onChange={(event) => setUsername(event.target.value)}
         minLength={3}
         maxLength={50}
+        required
+      />
+
+      <label htmlFor="signup-email">E-mail-cím</label>
+      <input
+        id="signup-email"
+        type="email"
+        autoComplete="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        maxLength={254}
         required
       />
 

@@ -2,6 +2,10 @@ import { useState } from "react";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LogIn from "./components/LogIn";
 import SignUp from "./components/SignUp";
+import EmailVerification from "./components/EmailVerification";
+import PasswordForm from "./components/PasswordForm";
+import SessionList from "./components/SessionList";
+import GoogleLink from "./components/GoogleLink";
 
 function AuthScreen() {
   const { user, checkingSession, sessionError, logOut } = useAuth();
@@ -25,6 +29,46 @@ function AuthScreen() {
       setLoggingOut(false);
     }
   }
+
+  const [verificationToken] = useState(() => {
+    return new URLSearchParams(window.location.hash.slice(1)).get(
+      "verify-email",
+    );
+  });
+
+  const [resetToken] = useState(() =>
+    new URLSearchParams(window.location.hash.slice(1)).get("reset-password"),
+  );
+
+  const [oauthError] = useState(() => {
+    const code = new URLSearchParams(window.location.search).get("authError");
+
+    if (code === "account-link-required") {
+      return "Ehhez az e-mail-címhez már tartozik fiók. Jelentkezz be a meglévő módon; a Google-fiók összekapcsolását külön adjuk hozzá.";
+    }
+
+    if (code === "google-login-failed") {
+      return "A Google-belépés nem sikerült. Próbáld újra.";
+    }
+
+    return "";
+  });
+
+  const [googleLinkResult] = useState(() => {
+    const result = new URLSearchParams(window.location.search).get(
+      "googleLink",
+    );
+
+    if (result === "success") {
+      return "A Google-fiók összekapcsolása sikeres.";
+    }
+
+    if (result === "failed") {
+      return "Az összekapcsolás nem sikerült. Ellenőrizd az e-mail-címet és próbáld újra.";
+    }
+
+    return "";
+  });
 
   function handleSignUpSuccess() {
     setScreen("login");
@@ -51,16 +95,31 @@ function AuthScreen() {
     );
   }
 
+  if (verificationToken) {
+    return <EmailVerification token={verificationToken} />;
+  }
+
+  if (resetToken) {
+    return <PasswordForm mode="reset" token={resetToken} />;
+  }
+
   if (user) {
     return (
       <div>
         <p>Bejelentkezve: {user.username}</p>
+        <EmailVerification user={user} />
+        <PasswordForm mode="change" />
+        <SessionList />
 
         {logoutError && <p role="alert">{logoutError}</p>}
 
         <button type="button" onClick={handleLogOut} disabled={loggingOut}>
           {loggingOut ? "Kijelentkezés…" : "Kijelentkezés"}
         </button>
+
+        {googleLinkResult && <p role="status">{googleLinkResult}</p>}
+
+        <GoogleLink />
       </div>
     );
   }
@@ -69,10 +128,24 @@ function AuthScreen() {
     <main>
       {notice && <p role="status">{notice}</p>}
 
-      {screen === "login" ? (
-        <LogIn />
-      ) : (
+      {screen === "signup" ? (
         <SignUp onSuccess={handleSignUpSuccess} />
+      ) : screen === "forgot" ? (
+        <PasswordForm mode="forgot" />
+      ) : (
+        <LogIn />
+      )}
+
+      {screen === "login" && (
+        <button
+          type="button"
+          onClick={() => {
+            setNotice("");
+            setScreen("forgot");
+          }}
+        >
+          Elfelejtettem a jelszavam
+        </button>
       )}
 
       <button type="button" onClick={switchScreen}>

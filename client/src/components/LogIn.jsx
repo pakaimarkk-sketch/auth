@@ -52,6 +52,7 @@ export default function LogIn() {
       <button type="submit" disabled={loading}>
         {loading ? "Bejelentkezés…" : "Bejelentkezés"}
       </button>
+      <a href="/api/auth/google">Belépés Google-lel</a>
     </form>
   );
 }

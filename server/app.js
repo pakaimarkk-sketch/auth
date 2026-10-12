@@ -3,7 +3,9 @@ require("dotenv").config();
 const express = require("express");
 const session = require("express-session");
 const createAuth = require("./auth");
+const sessions = require("./db/sessionQueries");
 const users = require("./db/userQueries");
+const externalAccounts = require("./db/externalAccountQueries");
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("A SESSION_SECRET környezeti változó hiányzik.");
@@ -12,7 +14,28 @@ if (!process.env.SESSION_SECRET) {
 const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
-const auth = createAuth({ users });
+const auth = createAuth({
+  users,
+  sessions,
+  externalAccounts,
+
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+    linkCallbackUrl: process.env.GOOGLE_LINK_CALLBACK_URL,
+  },
+  frontendUrl: process.env.FRONTEND_URL,
+
+  // Helyi fejlesztési helyettesítő, nem valódi e-mail-küldés.
+  sendVerificationEmail: async ({ to, url }) => {
+    console.log(`Megerősítési link (${to}): ${url}`);
+  },
+  sendPasswordResetEmail: async ({ to, url }) => {
+    console.log(`Jelszó-visszaállítás (${to}): ${url}`);
+  },
+});
+
 const PgSession = require("connect-pg-simple")(session);
 const pool = require("./db/pool");
 
