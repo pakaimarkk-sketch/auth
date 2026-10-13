@@ -2,8 +2,11 @@ const pool = require("./pool");
 
 async function findByUsername(username) {
   const { rows } = await pool.query(
-    `SELECT id, username, password, email, email_verified_at, auth_version
- FROM users WHERE username = $1`,
+    `SELECT id, username, password, email,
+        email_verified_at, auth_version,
+        password IS NOT NULL AS has_password
+ FROM users
+ WHERE username = $1`,
     [username],
   );
 
@@ -12,9 +15,33 @@ async function findByUsername(username) {
 
 async function findById(id) {
   const { rows } = await pool.query(
-    "SELECT id, username, email, email_verified_at, auth_version FROM users WHERE id = $1",
+    `SELECT id, username, email,
+        email_verified_at, auth_version,
+        password IS NOT NULL AS has_password
+ FROM users
+ WHERE id = $1`,
     [id],
   );
+
+  return rows[0] ?? null;
+}
+
+async function findByIdentifier(identifier) {
+  const isEmail = identifier.includes("@");
+
+  const query = isEmail
+    ? `SELECT id, username, password, email,
+              email_verified_at, auth_version,
+              password IS NOT NULL AS has_password
+       FROM users WHERE email = $1`
+    : `SELECT id, username, password, email,
+              email_verified_at, auth_version,
+              password IS NOT NULL AS has_password
+       FROM users WHERE username = $1`;
+
+  const value = isEmail ? identifier.toLowerCase() : identifier;
+
+  const { rows } = await pool.query(query, [value]);
 
   return rows[0] ?? null;
 }
@@ -142,4 +169,5 @@ module.exports = {
   changePassword,
   createPasswordReset,
   resetPassword,
+  findByIdentifier,
 };

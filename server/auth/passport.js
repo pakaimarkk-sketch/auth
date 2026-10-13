@@ -3,25 +3,28 @@ const bcrypt = require("bcryptjs");
 
 function configurePassport(passport, users) {
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await users.findByUsername(username);
+    new LocalStrategy(
+      { usernameField: "identifier" },
+      async (identifier, password, done) => {
+        try {
+          const user = await users.findByIdentifier(identifier);
 
-        if (!user || !user.password) {
-          return done(null, false);
+          if (!user || !user.password) {
+            return done(null, false);
+          }
+
+          const match = await bcrypt.compare(password, user.password);
+
+          if (!match) {
+            return done(null, false);
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error);
         }
-
-        const match = await bcrypt.compare(password, user.password);
-
-        if (!match) {
-          return done(null, false);
-        }
-
-        return done(null, user);
-      } catch (error) {
-        return done(error);
-      }
-    }),
+      },
+    ),
   );
 
   passport.serializeUser((user, done) => {

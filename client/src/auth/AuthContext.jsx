@@ -40,8 +40,8 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  async function logIn(username, password) {
-    const data = await requestLogIn(username, password);
+  async function logIn(identifier, password) {
+    const data = await requestLogIn(identifier, password);
     setUser(data.user);
   }
 

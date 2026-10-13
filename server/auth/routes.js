@@ -18,6 +18,12 @@ function createAuthRouter({ passport, users, sessions }) {
 
     const cleanUsername = username.trim();
 
+    if (cleanUsername.includes("@")) {
+      return res.status(400).json({
+        message: "A felhasználónév nem tartalmazhat @ karaktert.",
+      });
+    }
+
     if (cleanUsername.length < 3 || cleanUsername.length > 50) {
       return res.status(400).json({
         message: "A felhasználónév 3–50 karakter hosszú lehet.",
@@ -81,35 +87,40 @@ function createAuthRouter({ passport, users, sessions }) {
   });
 
   router.post("/log-in", loginLimiter, (req, res, next) => {
-    const { username, password } = req.body ?? {};
+    const { identifier, password } = req.body ?? {};
 
-    if (typeof username !== "string" || typeof password !== "string") {
+    if (typeof identifier !== "string" || typeof password !== "string") {
       return res.status(400).json({
-        message: "A felhasználónév és a jelszó megadása kötelező.",
+        message: "Az azonosító és a jelszó megadása kötelező.",
       });
     }
 
-    const cleanUsername = username.trim();
+    const cleanIdentifier = identifier.trim();
+    const isEmail = cleanIdentifier.includes("@");
+
+    const validIdentifier = isEmail
+      ? cleanIdentifier.length <= 254 &&
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanIdentifier)
+      : cleanIdentifier.length >= 3 && cleanIdentifier.length <= 50;
 
     if (
-      cleanUsername.length < 3 ||
-      cleanUsername.length > 50 ||
-      password.length < 12 ||
+      !validIdentifier ||
+      password.length === 0 ||
       Buffer.byteLength(password, "utf8") > 72
     ) {
       return res.status(400).json({
-        message: "Érvénytelen felhasználónév vagy jelszó.",
+        message: "Érvénytelen bejelentkezési adatok.",
       });
     }
 
-    req.body.username = cleanUsername;
+    req.body.identifier = cleanIdentifier;
 
     passport.authenticate("local", (error, user) => {
       if (error) return next(error);
 
       if (!user) {
         return res.status(401).json({
-          message: "Hibás felhasználónév vagy jelszó",
+          message: "Hibás azonosító vagy jelszó.",
         });
       }
 
@@ -133,6 +144,7 @@ function createAuthRouter({ passport, users, sessions }) {
               username: user.username,
               email: user.email,
               emailVerified: Boolean(user.email_verified_at),
+              hasPassword: user.has_password,
             },
           });
         });
@@ -146,6 +158,7 @@ function createAuthRouter({ passport, users, sessions }) {
       username: req.user.username,
       email: req.user.email,
       emailVerified: Boolean(req.user.email_verified_at),
+      hasPassword: req.user.has_password,
     });
   });
 

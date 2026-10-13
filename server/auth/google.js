@@ -63,6 +63,28 @@ function configureGoogle(passport, { google, externalAccounts }) {
       },
     ),
   );
+
+  passport.use(
+    "google-delete",
+    new GoogleStrategy(
+      {
+        clientID: google.clientId,
+        clientSecret: google.clientSecret,
+        callbackURL: google.deleteCallbackUrl,
+        state: true,
+        sessionKey: "oauth2:google-delete",
+      },
+      (accessToken, refreshToken, profile, done) => {
+        if (!profile.id) {
+          return done(null, false);
+        }
+
+        done(null, {
+          providerUserId: profile.id,
+        });
+      },
+    ),
+  );
 }
 
 module.exports = configureGoogle;

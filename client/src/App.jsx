@@ -6,6 +6,8 @@ import EmailVerification from "./components/EmailVerification";
 import PasswordForm from "./components/PasswordForm";
 import SessionList from "./components/SessionList";
 import GoogleLink from "./components/GoogleLink";
+import DeleteAccount from "./components/DeleteAccount";
+import SetPassword from "./components/SetPassword";
 
 function AuthScreen() {
   const { user, checkingSession, sessionError, logOut } = useAuth();
@@ -108,7 +110,11 @@ function AuthScreen() {
       <div>
         <p>Bejelentkezve: {user.username}</p>
         <EmailVerification user={user} />
-        <PasswordForm mode="change" />
+        {user.hasPassword ? (
+          <PasswordForm mode="change" />
+        ) : (
+          <SetPassword user={user} />
+        )}
         <SessionList />
 
         {logoutError && <p role="alert">{logoutError}</p>}
@@ -119,7 +125,8 @@ function AuthScreen() {
 
         {googleLinkResult && <p role="status">{googleLinkResult}</p>}
 
-        <GoogleLink />
+        {user.hasPassword && <GoogleLink />}
+        <DeleteAccount />
       </div>
     );
   }

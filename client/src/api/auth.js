@@ -67,8 +67,8 @@ export function resetPassword(token, newPassword) {
   });
 }
 
-export function logIn(username, password) {
-  return postAuth("/log-in", { username, password });
+export function logIn(identifier, password) {
+  return postAuth("/log-in", { identifier, password });
 }
 
 export function logOut() {
@@ -116,4 +116,15 @@ export function revokeOtherSessions() {
 
 export function startGoogleLink(password) {
   return postAuth("/google/link", { password });
+}
+
+export function startGoogleDeleteCheck() {
+  return postAuth("/account/delete/google");
+}
+
+export function deleteAccount(password, confirmation) {
+  return postAuth("/account/delete", {
+    password,
+    confirmation,
+  });
 }

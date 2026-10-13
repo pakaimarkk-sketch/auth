@@ -12,6 +12,7 @@ const requireAuth = require("./middleware");
 const createPasswordRouter = require("./passwordRoutes");
 const createGoogleLinkRouter = require("./googleLinkRoutes");
 const createSessionGuard = require("./sessionGuard");
+const createAccountRouter = require("./accountRoutes");
 
 function createAuth({
   users,
@@ -21,7 +22,18 @@ function createAuth({
   sessions,
   google,
   externalAccounts,
+  accounts,
 }) {
+  if (!google?.deleteCallbackUrl) {
+    throw new Error("Hiányzó Google fióktörlési callback cím.");
+  }
+
+  for (const name of ["matchesGoogleAccount", "deleteAccount"]) {
+    if (typeof accounts?.[name] !== "function") {
+      throw new Error(`Hiányzó fiókkezelő függvény: ${name}`);
+    }
+  }
+
   if (!google?.linkCallbackUrl) {
     throw new Error("Hiányzó Google összekapcsolási callback cím.");
   }
@@ -58,7 +70,7 @@ function createAuth({
   }
 
   for (const name of [
-    "findByUsername",
+    "findByIdentifier",
     "findById",
     "create",
     "saveEmailVerificationToken",
@@ -148,6 +160,15 @@ function createAuth({
       passport,
       users,
       externalAccounts,
+      frontendUrl,
+    }),
+  );
+
+  router.use(
+    createAccountRouter({
+      passport,
+      users,
+      accounts,
       frontendUrl,
     }),
   );

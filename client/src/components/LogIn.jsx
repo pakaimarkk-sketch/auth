@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 export default function LogIn() {
   const { logIn } = useAuth();
 
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function LogIn() {
     setLoading(true);
 
     try {
-      await logIn(username, password);
+      await logIn(identifier, password);
       setPassword("");
     } catch (error) {
       setError(error.message);
@@ -28,12 +28,15 @@ export default function LogIn() {
     <form onSubmit={handleSubmit}>
       <h1>Bejelentkezés</h1>
 
-      <label htmlFor="login-username">Felhasználónév</label>
+      <label htmlFor="login-identifier">Felhasználónév vagy e-mail-cím</label>
+
       <input
-        id="login-username"
+        id="login-identifier"
+        type="text"
         autoComplete="username"
-        value={username}
-        onChange={(event) => setUsername(event.target.value)}
+        value={identifier}
+        onChange={(event) => setIdentifier(event.target.value)}
+        maxLength={254}
         required
       />
 
