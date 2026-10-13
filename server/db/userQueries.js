@@ -1,4 +1,6 @@
 const pool = require("./pool");
+const enqueuePasswordNotification = require("./passwordNotification");
+const { encryptPayload } = require("../email/payloadCrypto");
 
 async function findByUsername(username) {
   const { rows } = await pool.query(
@@ -55,35 +57,85 @@ async function findPasswordById(id) {
   return rows[0]?.password ?? null;
 }
 
+async function updatePasswordAndNotify(query, values) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { rows } = await client.query(query, values);
+    const user = rows[0];
+
+    if (!user) {
+      await client.query("COMMIT");
+      return false;
+    }
+
+    await enqueuePasswordNotification(client, user);
+
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function changePassword({ userId, expectedPasswordHash, passwordHash }) {
-  const { rows } = await pool.query(
+  return updatePasswordAndNotify(
     `UPDATE users
      SET password = $1,
          auth_version = auth_version + 1
      WHERE id = $2 AND password = $3
-     RETURNING id`,
+     RETURNING id, email, email_verified_at`,
     [passwordHash, userId, expectedPasswordHash],
   );
-
-  return rows.length === 1;
 }
 
-async function createPasswordReset({ email, tokenHash, expiresAt }) {
-  const { rows } = await pool.query(
-    `INSERT INTO password_reset_tokens
-       (token_hash, user_id, auth_version, expires_at)
-     SELECT $1, id, auth_version, $2
-     FROM users
-     WHERE email = $3 AND email_verified_at IS NOT NULL
-     RETURNING user_id`,
-    [tokenHash, expiresAt, email],
-  );
+async function createPasswordReset({ email, tokenHash, expiresAt, url }) {
+  return runTransaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT id, email, auth_version
+       FROM users
+       WHERE email = $1
+         AND email_verified_at IS NOT NULL
+       FOR UPDATE`,
+      [email],
+    );
 
-  return rows.length === 1;
+    const user = rows[0];
+
+    if (!user) {
+      return false;
+    }
+
+    await client.query(
+      `INSERT INTO password_reset_tokens
+         (token_hash, user_id, auth_version, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [tokenHash, user.id, user.auth_version, expiresAt],
+    );
+
+    const payload = encryptPayload({
+      to: user.email,
+      url,
+    });
+
+    await client.query(
+      `INSERT INTO email_jobs
+         (user_id, type, payload, expires_at)
+       VALUES ($1, 'password-reset', $2, $3)`,
+      [user.id, payload, new Date(expiresAt.getTime() - 5 * 60 * 1000)],
+    );
+
+    return true;
+  });
 }
 
 async function resetPassword({ tokenHash, passwordHash }) {
-  const { rows } = await pool.query(
+  return updatePasswordAndNotify(
     `WITH consumed AS (
        DELETE FROM password_reset_tokens
        WHERE token_hash = $1 AND expires_at > NOW()
@@ -95,11 +147,9 @@ async function resetPassword({ tokenHash, passwordHash }) {
      FROM consumed AS c
      WHERE u.id = c.user_id
        AND u.auth_version = c.auth_version
-     RETURNING u.id`,
+     RETURNING u.id, u.email, u.email_verified_at`,
     [tokenHash, passwordHash],
   );
-
-  return rows.length === 1;
 }
 
 async function create({ username, passwordHash, email }) {
@@ -132,13 +182,49 @@ async function create({ username, passwordHash, email }) {
   }
 }
 
-async function saveEmailVerificationToken({ userId, tokenHash, expiresAt }) {
-  await pool.query(
-    `INSERT INTO email_verification_tokens
-       (user_id, token_hash, expires_at)
-     VALUES ($1, $2, $3)`,
-    [userId, tokenHash, expiresAt],
-  );
+async function saveEmailVerificationToken({
+  userId,
+  email,
+  tokenHash,
+  expiresAt,
+  url,
+}) {
+  return runTransaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT id, email, email_verified_at
+       FROM users
+       WHERE id = $1
+       FOR UPDATE`,
+      [userId],
+    );
+
+    const user = rows[0];
+
+    if (!user || user.email !== email || user.email_verified_at) {
+      return false;
+    }
+
+    await client.query(
+      `INSERT INTO email_verification_tokens
+         (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expiresAt],
+    );
+
+    const payload = encryptPayload({
+      to: user.email,
+      url,
+    });
+
+    await client.query(
+      `INSERT INTO email_jobs
+         (user_id, type, payload, expires_at)
+       VALUES ($1, 'verification', $2, $3)`,
+      [user.id, payload, new Date(expiresAt.getTime() - 5 * 60 * 1000)],
+    );
+
+    return true;
+  });
 }
 
 async function verifyEmailToken(tokenHash) {
@@ -157,6 +243,24 @@ async function verifyEmailToken(tokenHash) {
   );
 
   return rows[0] ?? null;
+}
+
+async function runTransaction(action) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const result = await action(client);
+
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = {

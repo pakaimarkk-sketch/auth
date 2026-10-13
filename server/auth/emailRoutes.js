@@ -7,7 +7,7 @@ function hashToken(token) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function createEmailRouter({ users, sendVerificationEmail, frontendUrl }) {
+function createEmailRouter({ users, frontendUrl }) {
   const router = Router();
 
   const sendLimiter = rateLimit({
@@ -50,22 +50,25 @@ function createEmailRouter({ users, sendVerificationEmail, frontendUrl }) {
 
         const token = randomBytes(32).toString("hex");
 
-        await users.saveEmailVerificationToken({
-          userId: req.user.id,
-          tokenHash: hashToken(token),
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-        });
-
         const url = new URL(frontendUrl);
         url.hash = `verify-email=${token}`;
 
-        await sendVerificationEmail({
-          to: req.user.email,
+        const created = await users.saveEmailVerificationToken({
+          userId: req.user.id,
+          email: req.user.email,
+          tokenHash: hashToken(token),
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
           url: url.toString(),
         });
 
+        if (!created) {
+          return res.status(409).json({
+            message: "A fiók állapota megváltozott. Frissítsd az oldalt.",
+          });
+        }
+
         res.json({
-          message: "A megerősítési link elküldve.",
+          message: "A megerősítő levél küldési kérelmét rögzítettük.",
         });
       } catch (error) {
         next(error);

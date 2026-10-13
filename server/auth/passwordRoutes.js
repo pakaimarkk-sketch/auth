@@ -113,25 +113,15 @@ function createPasswordRouter({ users, sendPasswordResetEmail, frontendUrl }) {
     try {
       const token = randomBytes(32).toString("hex");
 
-      const created = await users.createPasswordReset({
+      const url = new URL(frontendUrl);
+      url.hash = `reset-password=${token}`;
+
+      await users.createPasswordReset({
         email: cleanEmail,
         tokenHash: hashToken(token),
         expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        url: url.toString(),
       });
-
-      if (created) {
-        const url = new URL(frontendUrl);
-        url.hash = `reset-password=${token}`;
-
-        try {
-          await sendPasswordResetEmail({
-            to: cleanEmail,
-            url: url.toString(),
-          });
-        } catch (error) {
-          console.error("A visszaállító e-mail küldése sikertelen.");
-        }
-      }
 
       res.json({
         message:

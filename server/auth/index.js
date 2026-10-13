@@ -16,9 +16,7 @@ const createAccountRouter = require("./accountRoutes");
 
 function createAuth({
   users,
-  sendVerificationEmail,
   frontendUrl,
-  sendPasswordResetEmail,
   sessions,
   google,
   externalAccounts,
@@ -40,13 +38,6 @@ function createAuth({
 
   if (typeof externalAccounts?.linkGoogleAccount !== "function") {
     throw new Error("Hiányzó linkGoogleAccount adatkezelő függvény.");
-  }
-  if (typeof sendVerificationEmail !== "function") {
-    throw new Error("Hiányzó sendVerificationEmail függvény.");
-  }
-
-  if (typeof sendPasswordResetEmail !== "function") {
-    throw new Error("Hiányzó sendPasswordResetEmail függvény.");
   }
 
   if (!google?.clientId || !google?.clientSecret || !google?.callbackUrl) {
@@ -127,7 +118,6 @@ function createAuth({
   router.use(
     createEmailRouter({
       users,
-      sendVerificationEmail,
       frontendUrl,
     }),
   );
@@ -143,7 +133,6 @@ function createAuth({
   router.use(
     createPasswordRouter({
       users,
-      sendPasswordResetEmail,
       frontendUrl,
     }),
   );

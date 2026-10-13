@@ -71,6 +71,23 @@ function createMailer({ host, port, user, password, from }) {
           "Ha nem te kérted, hagyd figyelmen kívül ezt az üzenetet.",
         ].join("\n"),
       }),
+
+    sendPasswordChangedEmail: ({ to, changedAt }) =>
+      send({
+        to,
+        subject: "Megváltozott a fiókod jelszava",
+        text: [
+          "A fiókod helyi jelszavát beállították vagy megváltoztatták.",
+          "",
+          `Időpont: ${changedAt}`,
+          "",
+          "Ha te végezted a módosítást, nincs teendőd.",
+          "Ha nem te voltál, nyisd meg az alkalmazást,",
+          "használd a jelszó-visszaállítást, és ellenőrizd a hozzáféréseidet.",
+          "",
+          "Ez az üzenet nem tartalmazza a jelszavadat.",
+        ].join("\n"),
+      }),
   };
 }
 
