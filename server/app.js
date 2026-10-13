@@ -29,6 +29,12 @@ const auth = createAuth({
     linkCallbackUrl: process.env.GOOGLE_LINK_CALLBACK_URL,
     deleteCallbackUrl: process.env.GOOGLE_DELETE_CALLBACK_URL,
   },
+  facebook: {
+    appId: process.env.FACEBOOK_APP_ID,
+    appSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackUrl: process.env.FACEBOOK_CALLBACK_URL,
+    linkCallbackUrl: process.env.FACEBOOK_LINK_CALLBACK_URL,
+  },
   frontendUrl: process.env.FRONTEND_URL,
 });
 

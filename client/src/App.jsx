@@ -8,6 +8,7 @@ import SessionList from "./components/SessionList";
 import GoogleLink from "./components/GoogleLink";
 import DeleteAccount from "./components/DeleteAccount";
 import SetPassword from "./components/SetPassword";
+import FacebookLink from "./components/FacebookLink";
 
 function AuthScreen() {
   const { user, checkingSession, sessionError, logOut } = useAuth();
@@ -53,6 +54,10 @@ function AuthScreen() {
       return "A Google-belépés nem sikerült. Próbáld újra.";
     }
 
+    if (code === "facebook-login-failed") {
+      return "A Facebook-belépés nem sikerült. Ha még nem kapcsoltad össze, lépj be jelszóval, és kapcsolódj a fiókbeállításoknál.";
+    }
+
     return "";
   });
 
@@ -67,6 +72,22 @@ function AuthScreen() {
 
     if (result === "failed") {
       return "Az összekapcsolás nem sikerült. Ellenőrizd az e-mail-címet és próbáld újra.";
+    }
+
+    return "";
+  });
+
+  const [facebookLinkResult] = useState(() => {
+    const result = new URLSearchParams(window.location.search).get(
+      "facebookLink",
+    );
+
+    if (result === "success") {
+      return "A Facebook-fiók összekapcsolása sikeres.";
+    }
+
+    if (result === "failed") {
+      return "A Facebook-összekapcsolás nem sikerült. Ellenőrizd, hogy az e-mail-cím egyezik, és engedélyezted a megosztását.";
     }
 
     return "";
@@ -125,7 +146,10 @@ function AuthScreen() {
 
         {googleLinkResult && <p role="status">{googleLinkResult}</p>}
 
+        {facebookLinkResult && <p role="status">{facebookLinkResult}</p>}
+
         {user.hasPassword && <GoogleLink />}
+        {user.hasPassword && user.emailVerified && <FacebookLink />}
         <DeleteAccount />
       </div>
     );

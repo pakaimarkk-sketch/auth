@@ -56,6 +56,7 @@ export default function LogIn() {
         {loading ? "Bejelentkezés…" : "Bejelentkezés"}
       </button>
       <a href="/api/auth/google">Belépés Google-lel</a>
+      <a href="/api/auth/facebook">Belépés Facebookkal</a>
     </form>
   );
 }

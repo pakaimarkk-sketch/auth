@@ -122,6 +122,10 @@ export function startGoogleDeleteCheck() {
   return postAuth("/account/delete/google");
 }
 
+export function startFacebookLink(password) {
+  return postAuth("/facebook/link", { password });
+}
+
 export function deleteAccount(password, confirmation) {
   return postAuth("/account/delete", {
     password,

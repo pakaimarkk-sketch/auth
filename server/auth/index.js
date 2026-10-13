@@ -13,15 +13,33 @@ const createPasswordRouter = require("./passwordRoutes");
 const createGoogleLinkRouter = require("./googleLinkRoutes");
 const createSessionGuard = require("./sessionGuard");
 const createAccountRouter = require("./accountRoutes");
+const configureFacebook = require("./facebook");
+const createFacebookRouter = require("./facebookRoutes");
+const createFacebookLinkRouter = require("./facebookLinkRoutes");
 
 function createAuth({
   users,
   frontendUrl,
   sessions,
   google,
+  facebook,
   externalAccounts,
   accounts,
 }) {
+  if (
+    !facebook?.appId ||
+    !facebook?.appSecret ||
+    !facebook?.callbackUrl ||
+    !facebook?.linkCallbackUrl
+  ) {
+    throw new Error("Hiányzó Facebook-konfiguráció.");
+  }
+
+  for (const name of ["findFacebookUser", "linkFacebookAccount"]) {
+    if (typeof externalAccounts?.[name] !== "function") {
+      throw new Error(`Hiányzó Facebook adatkezelő függvény: ${name}`);
+    }
+  }
   if (!google?.deleteCallbackUrl) {
     throw new Error("Hiányzó Google fióktörlési callback cím.");
   }
@@ -96,6 +114,11 @@ function createAuth({
     externalAccounts,
   });
 
+  configureFacebook(passport, {
+    facebook,
+    externalAccounts,
+  });
+
   const { generateToken, csrfSynchronisedProtection } = csrfSync();
 
   const router = Router();
@@ -158,6 +181,22 @@ function createAuth({
       passport,
       users,
       accounts,
+      frontendUrl,
+    }),
+  );
+
+  router.use(
+    createFacebookRouter({
+      passport,
+      frontendUrl,
+    }),
+  );
+
+  router.use(
+    createFacebookLinkRouter({
+      passport,
+      users,
+      externalAccounts,
       frontendUrl,
     }),
   );
