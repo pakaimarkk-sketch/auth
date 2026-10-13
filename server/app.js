@@ -7,6 +7,7 @@ const sessions = require("./db/sessionQueries");
 const users = require("./db/userQueries");
 const externalAccounts = require("./db/externalAccountQueries");
 const accounts = require("./db/accountQueries");
+const createMailer = require("./email/mailer");
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("A SESSION_SECRET környezeti változó hiányzik.");
@@ -15,6 +16,15 @@ if (!process.env.SESSION_SECRET) {
 const isProduction = process.env.NODE_ENV === "production";
 
 const app = express();
+
+const mailer = createMailer({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  user: process.env.SMTP_USER,
+  password: process.env.SMTP_PASSWORD,
+  from: process.env.MAIL_FROM,
+});
+
 const auth = createAuth({
   users,
   sessions,
@@ -30,13 +40,8 @@ const auth = createAuth({
   },
   frontendUrl: process.env.FRONTEND_URL,
 
-  // Helyi fejlesztési helyettesítő, nem valódi e-mail-küldés.
-  sendVerificationEmail: async ({ to, url }) => {
-    console.log(`Megerősítési link (${to}): ${url}`);
-  },
-  sendPasswordResetEmail: async ({ to, url }) => {
-    console.log(`Jelszó-visszaállítás (${to}): ${url}`);
-  },
+  sendVerificationEmail: mailer.sendVerificationEmail,
+  sendPasswordResetEmail: mailer.sendPasswordResetEmail,
 });
 
 const PgSession = require("connect-pg-simple")(session);
