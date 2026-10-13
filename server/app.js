@@ -65,6 +65,7 @@ app.use(
   }),
 );
 
+app.use(auth.sessionGuard);
 app.use(auth.initialize);
 app.use(auth.session);
 

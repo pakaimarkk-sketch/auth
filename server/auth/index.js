@@ -11,6 +11,7 @@ const createSessionRouter = require("./sessionRoutes");
 const requireAuth = require("./middleware");
 const createPasswordRouter = require("./passwordRoutes");
 const createGoogleLinkRouter = require("./googleLinkRoutes");
+const createSessionGuard = require("./sessionGuard");
 
 function createAuth({
   users,
@@ -72,6 +73,17 @@ function createAuth({
     }
   }
 
+  for (const name of [
+    "listActive",
+    "revoke",
+    "invalidateOthers",
+    "isRevoked",
+  ]) {
+    if (typeof sessions?.[name] !== "function") {
+      throw new Error(`Hiányzó session adatkezelő függvény: ${name}`);
+    }
+  }
+
   const passport = new Passport();
 
   configurePassport(passport, users);
@@ -112,6 +124,7 @@ function createAuth({
     createAuthRouter({
       passport,
       users,
+      sessions,
     }),
   );
 
@@ -145,6 +158,7 @@ function createAuth({
     router,
     requireAuth,
     csrfProtection: csrfSynchronisedProtection,
+    sessionGuard: createSessionGuard({ sessions }),
   };
 }
 

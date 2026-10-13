@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const requireAuth = require("./middleware");
 const createAuthRateLimiters = require("./rateLimiters");
 
-function createAuthRouter({ passport, users }) {
+function createAuthRouter({ passport, users, sessions }) {
   const router = Router();
   const { loginLimiter, signupLimiter } = createAuthRateLimiters();
 
@@ -149,22 +149,35 @@ function createAuthRouter({ passport, users }) {
     });
   });
 
-  router.post("/log-out", (req, res, next) => {
-    req.logout((error) => {
-      if (error) return next(error);
+  router.post("/log-out", async (req, res, next) => {
+    try {
+      if (req.isAuthenticated()) {
+        await sessions.revoke({
+          sid: req.sessionID,
+          userId: req.user.id,
+          version: req.user.auth_version,
+        });
+      }
 
-      req.session.destroy((error) => {
+      req.logout((error) => {
         if (error) return next(error);
 
-        res.clearCookie("connect.sid", {
-          path: "/",
-          httpOnly: true,
-          sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
+        req.session.destroy((error) => {
+          if (error) return next(error);
+
+          res.clearCookie("connect.sid", {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+          });
+
+          res.json({ message: "Sikeres kijelentkezés" });
         });
-        res.json({ message: "Sikeres kijelentkezés" });
       });
-    });
+    } catch (error) {
+      next(error);
+    }
   });
 
   return router;

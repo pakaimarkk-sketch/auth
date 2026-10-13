@@ -126,6 +126,8 @@ function AuthScreen() {
 
   return (
     <main>
+      {oauthError && <p role="alert">{oauthError}</p>}
+
       {notice && <p role="status">{notice}</p>}
 
       {screen === "signup" ? (
