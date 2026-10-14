@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const session = require("express-session");
-const createAuth = require("./auth");
+const createAuth = require("@pakaimark/auth");
 const sessions = require("./db/sessionQueries");
 const users = require("./db/userQueries");
 const externalAccounts = require("./db/externalAccountQueries");

@@ -91,12 +91,13 @@ export default function DeleteAccount() {
 
       <p>
         Ez végleg törli a helyi fiókodat, a kapcsolt belépési módokat és a hozzá
-        tartozó hitelesítési tokeneket. Magát a Google-fiókodat nem törli.
+        tartozó hitelesítési tokeneket. Magát a Google- vagy Facebook-fiókodat
+        nem törli.
       </p>
 
       <p>
-        Ha van helyi jelszavad, add meg alább. Ha kizárólag Google-lel használod
-        a fiókot, előbb végezd el a Google-ellenőrzést.
+        Ha van helyi jelszavad, add meg alább. Ha nincs, ellenőrizd a fiókodhoz
+        kapcsolt külső belépési módot.
       </p>
 
       {!user.hasPassword && providers.google && (
@@ -114,6 +115,12 @@ export default function DeleteAccount() {
       {googleChecked && (
         <p>
           A Google-ellenőrzés sikeres. A törlési engedély 5 percig érvényes.
+        </p>
+      )}
+
+      {facebookChecked && (
+        <p>
+          A Facebook-ellenőrzés sikeres. A törlési engedély 5 percig érvényes.
         </p>
       )}
 
