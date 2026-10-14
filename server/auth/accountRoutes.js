@@ -3,7 +3,13 @@ const bcrypt = require("bcryptjs");
 const { rateLimit } = require("express-rate-limit");
 const requireAuth = require("./middleware");
 
-function createAccountRouter({ passport, users, accounts, frontendUrl }) {
+function createAccountRouter({
+  passport,
+  users,
+  accounts,
+  frontendUrl,
+  providers,
+}) {
   const router = Router();
 
   const limiter = rateLimit({
@@ -37,88 +43,90 @@ function createAccountRouter({ passport, users, accounts, frontendUrl }) {
     });
   }
 
-  router.post(
-    "/account/delete/google",
-    requireAuth,
-    limiter,
-    async (req, res, next) => {
-      try {
-        const passwordHash = await users.findPasswordById(req.user.id);
+  if (providers.google) {
+    router.post(
+      "/account/delete/google",
+      requireAuth,
+      limiter,
+      async (req, res, next) => {
+        try {
+          const passwordHash = await users.findPasswordById(req.user.id);
 
-        if (passwordHash) {
-          return res.status(400).json({
-            message:
-              "Ehhez a fiókhoz helyi jelszó tartozik. A törlést azzal erősítsd meg.",
-          });
-        }
+          if (passwordHash) {
+            return res.status(400).json({
+              message:
+                "Ehhez a fiókhoz helyi jelszó tartozik. A törlést azzal erősítsd meg.",
+            });
+          }
 
-        delete req.session.googleDeleteGrant;
-
-        req.session.googleDeletePending = {
-          userId: req.user.id,
-          version: req.user.auth_version,
-          expiresAt: Date.now() + 5 * 60 * 1000,
-        };
-
-        req.session.save((error) => {
-          if (error) return next(error);
-
-          res.json({
-            startUrl: "/api/auth/google/delete/start",
-          });
-        });
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  router.get("/google/delete/start", requireAuth, (req, res, next) => {
-    if (!validBinding(req.session.googleDeletePending, req.user)) {
-      return finishGoogle(req, res, next, "failed");
-    }
-
-    passport.authenticate("google-delete", {
-      scope: ["profile", "email"],
-      prompt: "select_account",
-    })(req, res, next);
-  });
-
-  router.get("/google/delete/callback", requireAuth, (req, res, next) => {
-    passport.authenticate("google-delete", (error, profile) => {
-      async function verify() {
-        if (
-          error ||
-          !profile ||
-          !validBinding(req.session.googleDeletePending, req.user)
-        ) {
           delete req.session.googleDeleteGrant;
-          return finishGoogle(req, res, next, "failed");
+
+          req.session.googleDeletePending = {
+            userId: req.user.id,
+            version: req.user.auth_version,
+            expiresAt: Date.now() + 5 * 60 * 1000,
+          };
+
+          req.session.save((error) => {
+            if (error) return next(error);
+
+            res.json({
+              startUrl: "/api/auth/google/delete/start",
+            });
+          });
+        } catch (error) {
+          next(error);
         }
+      },
+    );
 
-        const matches = await accounts.matchesGoogleAccount({
-          userId: req.user.id,
-          providerUserId: profile.providerUserId,
-        });
-
-        if (!matches) {
-          delete req.session.googleDeleteGrant;
-          return finishGoogle(req, res, next, "failed");
-        }
-
-        req.session.googleDeleteGrant = {
-          userId: req.user.id,
-          version: req.user.auth_version,
-          googleId: profile.providerUserId,
-          expiresAt: Date.now() + 5 * 60 * 1000,
-        };
-
-        finishGoogle(req, res, next, "success");
+    router.get("/google/delete/start", requireAuth, (req, res, next) => {
+      if (!validBinding(req.session.googleDeletePending, req.user)) {
+        return finishGoogle(req, res, next, "failed");
       }
 
-      verify().catch(next);
-    })(req, res, next);
-  });
+      passport.authenticate("google-delete", {
+        scope: ["profile", "email"],
+        prompt: "select_account",
+      })(req, res, next);
+    });
+
+    router.get("/google/delete/callback", requireAuth, (req, res, next) => {
+      passport.authenticate("google-delete", (error, profile) => {
+        async function verify() {
+          if (
+            error ||
+            !profile ||
+            !validBinding(req.session.googleDeletePending, req.user)
+          ) {
+            delete req.session.googleDeleteGrant;
+            return finishGoogle(req, res, next, "failed");
+          }
+
+          const matches = await accounts.matchesGoogleAccount({
+            userId: req.user.id,
+            providerUserId: profile.providerUserId,
+          });
+
+          if (!matches) {
+            delete req.session.googleDeleteGrant;
+            return finishGoogle(req, res, next, "failed");
+          }
+
+          req.session.googleDeleteGrant = {
+            userId: req.user.id,
+            version: req.user.auth_version,
+            googleId: profile.providerUserId,
+            expiresAt: Date.now() + 5 * 60 * 1000,
+          };
+
+          finishGoogle(req, res, next, "success");
+        }
+
+        verify().catch(next);
+      })(req, res, next);
+    });
+  }
 
   router.post(
     "/account/delete",
@@ -153,14 +161,17 @@ function createAccountRouter({ passport, users, accounts, frontendUrl }) {
           const googleGrant = req.session.googleDeleteGrant;
           const facebookGrant = req.session.facebookDeleteGrant;
 
-          if (validBinding(googleGrant, req.user)) {
+          if (providers.google && validBinding(googleGrant, req.user)) {
             googleId = googleGrant.googleId;
-          } else if (validBinding(facebookGrant, req.user)) {
+          } else if (
+            providers.facebook &&
+            validBinding(facebookGrant, req.user)
+          ) {
             facebookId = facebookGrant.facebookId;
           } else {
             return res.status(403).json({
               message:
-                "A törlés előtt ellenőrizd a fiókodhoz kapcsolt Google- vagy Facebook-fiókot.",
+                "A törléshez nincs érvényes, engedélyezett külső fiókellenőrzés.",
             });
           }
         }

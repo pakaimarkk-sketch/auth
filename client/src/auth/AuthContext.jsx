@@ -3,6 +3,7 @@ import {
   getCurrentUser,
   logIn as requestLogIn,
   logOut as requestLogOut,
+  getAuthConfig,
 } from "../api/auth";
 
 const AuthContext = createContext(null);
@@ -11,16 +12,24 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [sessionError, setSessionError] = useState("");
+  const [providers, setProviders] = useState({
+    google: false,
+    facebook: false,
+  });
 
   useEffect(() => {
     let ignore = false;
 
     async function checkSession() {
       try {
-        const currentUser = await getCurrentUser();
+        const [currentUser, config] = await Promise.all([
+          getCurrentUser(),
+          getAuthConfig(),
+        ]);
 
         if (!ignore) {
           setUser(currentUser);
+          setProviders(config.providers);
         }
       } catch (error) {
         if (!ignore) {
@@ -58,6 +67,7 @@ export function AuthProvider({ children }) {
         sessionError,
         logIn,
         logOut,
+        providers,
       }}
     >
       {children}

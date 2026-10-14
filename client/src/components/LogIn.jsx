@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 
 export default function LogIn() {
-  const { logIn } = useAuth();
+  const { logIn, providers } = useAuth();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -55,8 +55,11 @@ export default function LogIn() {
       <button type="submit" disabled={loading}>
         {loading ? "Bejelentkezés…" : "Bejelentkezés"}
       </button>
-      <a href="/api/auth/google">Belépés Google-lel</a>
-      <a href="/api/auth/facebook">Belépés Facebookkal</a>
+      {providers.google && <a href="/api/auth/google">Belépés Google-lel</a>}
+
+      {providers.facebook && (
+        <a href="/api/auth/facebook">Belépés Facebookkal</a>
+      )}
     </form>
   );
 }

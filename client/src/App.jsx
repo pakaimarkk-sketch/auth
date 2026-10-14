@@ -11,7 +11,7 @@ import SetPassword from "./components/SetPassword";
 import FacebookLink from "./components/FacebookLink";
 
 function AuthScreen() {
-  const { user, checkingSession, sessionError, logOut } = useAuth();
+  const { user, checkingSession, sessionError, logOut, providers } = useAuth();
 
   const [screen, setScreen] = useState("login");
   const [notice, setNotice] = useState("");
@@ -156,8 +156,11 @@ function AuthScreen() {
 
         {facebookLinkResult && <p role="status">{facebookLinkResult}</p>}
 
-        {user.hasPassword && <GoogleLink />}
-        {user.hasPassword && user.emailVerified && <FacebookLink />}
+        {providers.google && user.hasPassword && <GoogleLink />}
+
+        {providers.facebook && user.hasPassword && user.emailVerified && (
+          <FacebookLink />
+        )}
         <DeleteAccount />
       </div>
     );

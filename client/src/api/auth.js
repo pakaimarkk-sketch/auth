@@ -37,6 +37,19 @@ async function postAuth(path, body) {
   return data;
 }
 
+export async function getAuthConfig() {
+  const response = await fetch(`${AUTH_URL}/config`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Nem sikerült lekérni a belépési beállításokat.");
+  }
+
+  return response.json();
+}
+
 export function signUp(username, password, email) {
   return postAuth("/sign-up", { username, password, email });
 }

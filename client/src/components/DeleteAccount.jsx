@@ -4,6 +4,7 @@ import {
   startGoogleDeleteCheck,
   startFacebookDeleteCheck,
 } from "../api/auth";
+import { useAuth } from "../auth/AuthContext";
 
 export default function DeleteAccount() {
   const [password, setPassword] = useState("");
@@ -11,6 +12,7 @@ export default function DeleteAccount() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const { user, providers } = useAuth();
 
   const [googleChecked] = useState(
     () =>
@@ -97,9 +99,17 @@ export default function DeleteAccount() {
         a fiókot, előbb végezd el a Google-ellenőrzést.
       </p>
 
-      <button type="button" disabled={loading} onClick={handleGoogleCheck}>
-        Google-fiók ellenőrzése
-      </button>
+      {!user.hasPassword && providers.google && (
+        <button type="button" disabled={loading} onClick={handleGoogleCheck}>
+          Google-fiók ellenőrzése
+        </button>
+      )}
+
+      {!user.hasPassword && providers.facebook && (
+        <button type="button" disabled={loading} onClick={handleFacebookCheck}>
+          Facebook-fiók ellenőrzése
+        </button>
+      )}
 
       {googleChecked && (
         <p>
