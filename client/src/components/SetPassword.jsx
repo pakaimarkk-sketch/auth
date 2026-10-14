@@ -26,8 +26,9 @@ export default function SetPassword({ user }) {
       <h2>Helyi jelszó beállítása</h2>
 
       <p>
-        Jelenleg Google-lel lépsz be. Helyi jelszó beállítása után
-        felhasználónévvel és jelszóval is beléphetsz.
+        A fiókodhoz még nincs helyi jelszó. Beállítása után felhasználónévvel
+        vagy e-mail-címmel és jelszóval is beléphetsz. A kapcsolt külső belépési
+        módok továbbra is használhatók.
       </p>
 
       <p>A beállítási linket ehhez a címhez kérjük: {user.email}</p>

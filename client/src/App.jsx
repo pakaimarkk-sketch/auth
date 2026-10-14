@@ -55,7 +55,15 @@ function AuthScreen() {
     }
 
     if (code === "facebook-login-failed") {
-      return "A Facebook-belépés nem sikerült. Ha még nem kapcsoltad össze, lépj be jelszóval, és kapcsolódj a fiókbeállításoknál.";
+      return "A Facebook-belépés nem sikerült. Próbáld újra.";
+    }
+
+    if (code === "facebook-link-required") {
+      return "Ehhez az e-mail-címhez már tartozik fiók. Lépj be a meglévő módon, majd kapcsold hozzá a Facebook-fiókot.";
+    }
+
+    if (code === "facebook-email-required") {
+      return "A Facebook nem adott vissza használható e-mail-címet. Regisztrálj e-maillel és jelszóval; a Facebook-kapcsolás csak megosztott, egyező címmel használható.";
     }
 
     return "";

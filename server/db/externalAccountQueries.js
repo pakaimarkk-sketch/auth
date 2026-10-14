@@ -226,9 +226,72 @@ async function linkFacebookAccount({ userId, version, providerUserId, email }) {
   }
 }
 
+async function findOrCreateFacebookUser({ providerUserId, email }) {
+  const existing = await findFacebookUser(providerUserId);
+
+  if (existing) return existing;
+
+  if (
+    typeof email !== "string" ||
+    email.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    const error = new Error("Facebook email unavailable");
+    error.code = "FACEBOOK_EMAIL_REQUIRED";
+    throw error;
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { rows } = await client.query(
+      `INSERT INTO users
+         (username, password, email, email_verified_at)
+       VALUES ($1, NULL, $2, NULL)
+       RETURNING id, username, email,
+                 email_verified_at, auth_version,
+                 password IS NOT NULL AS has_password`,
+      [`facebook_${randomUUID()}`, email],
+    );
+
+    const user = rows[0];
+
+    await client.query(
+      `INSERT INTO external_accounts
+         (provider, provider_user_id, user_id)
+       VALUES ('facebook', $1, $2)`,
+      [providerUserId, user.id],
+    );
+
+    await client.query("COMMIT");
+    return user;
+  } catch (error) {
+    await client.query("ROLLBACK");
+
+    if (error.code === "23505") {
+      const existing = await findFacebookUser(providerUserId);
+
+      if (existing) return existing;
+
+      if (error.constraint === "users_email_key") {
+        const conflict = new Error("Existing account requires linking");
+        conflict.code = "ACCOUNT_LINK_REQUIRED";
+        throw conflict;
+      }
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   findOrCreateGoogleUser,
   linkGoogleAccount,
   findFacebookUser,
   linkFacebookAccount,
+  findOrCreateFacebookUser,
 };

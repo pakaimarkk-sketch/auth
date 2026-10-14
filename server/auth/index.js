@@ -16,6 +16,7 @@ const createAccountRouter = require("./accountRoutes");
 const configureFacebook = require("./facebook");
 const createFacebookRouter = require("./facebookRoutes");
 const createFacebookLinkRouter = require("./facebookLinkRoutes");
+const createFacebookDeleteRouter = require("./facebookDeleteRoutes");
 
 function createAuth({
   users,
@@ -30,7 +31,8 @@ function createAuth({
     !facebook?.appId ||
     !facebook?.appSecret ||
     !facebook?.callbackUrl ||
-    !facebook?.linkCallbackUrl
+    !facebook?.linkCallbackUrl ||
+    !facebook?.deleteCallbackUrl
   ) {
     throw new Error("Hiányzó Facebook-konfiguráció.");
   }
@@ -197,6 +199,15 @@ function createAuth({
       passport,
       users,
       externalAccounts,
+      frontendUrl,
+    }),
+  );
+
+  router.use(
+    createFacebookDeleteRouter({
+      passport,
+      users,
+      accounts,
       frontendUrl,
     }),
   );

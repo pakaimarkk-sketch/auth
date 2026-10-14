@@ -13,11 +13,25 @@ async function matchesGoogleAccount({ userId, providerUserId }) {
   return rows.length === 1;
 }
 
+async function matchesFacebookAccount({ userId, providerUserId }) {
+  const { rows } = await pool.query(
+    `SELECT 1
+     FROM external_accounts
+     WHERE user_id = $1
+       AND provider = 'facebook'
+       AND provider_user_id = $2`,
+    [userId, providerUserId],
+  );
+
+  return rows.length === 1;
+}
+
 async function deleteAccount({
   userId,
   version,
   expectedPasswordHash,
   googleId,
+  facebookId,
 }) {
   const client = await pool.connect();
 
@@ -41,13 +55,17 @@ async function deleteAccount({
         typeof expectedPasswordHash === "string" &&
         user.password === expectedPasswordHash;
     } else if (allowed) {
+      const provider = googleId ? "google" : facebookId ? "facebook" : null;
+
+      const providerUserId = googleId || facebookId || null;
+
       const linked = await client.query(
         `SELECT 1
-         FROM external_accounts
-         WHERE user_id = $1
-           AND provider = 'google'
-           AND provider_user_id = $2`,
-        [userId, googleId ?? null],
+     FROM external_accounts
+     WHERE user_id = $1
+       AND provider = $2
+       AND provider_user_id = $3`,
+        [userId, provider, providerUserId],
       );
 
       allowed = linked.rows.length === 1;
@@ -79,4 +97,5 @@ async function deleteAccount({
 module.exports = {
   matchesGoogleAccount,
   deleteAccount,
+  matchesFacebookAccount,
 };

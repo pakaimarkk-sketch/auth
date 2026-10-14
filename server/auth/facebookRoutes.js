@@ -3,9 +3,9 @@ const { Router } = require("express");
 function createFacebookRouter({ passport, frontendUrl }) {
   const router = Router();
 
-  function fail(res) {
+  function fail(res, code = "facebook-login-failed") {
     const url = new URL(frontendUrl);
-    url.searchParams.set("authError", "facebook-login-failed");
+    url.searchParams.set("authError", code);
     res.redirect(url.toString());
   }
 
@@ -19,6 +19,14 @@ function createFacebookRouter({ passport, frontendUrl }) {
   router.get("/facebook/callback", (req, res, next) => {
     passport.authenticate("facebook", (error, user) => {
       if (error) {
+        if (error.code === "ACCOUNT_LINK_REQUIRED") {
+          return fail(res, "facebook-link-required");
+        }
+
+        if (error.code === "FACEBOOK_EMAIL_REQUIRED") {
+          return fail(res, "facebook-email-required");
+        }
+
         console.error("Facebook-belépési hiba:", error.message);
         return fail(res);
       }

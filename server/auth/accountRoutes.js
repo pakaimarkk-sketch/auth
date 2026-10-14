@@ -136,6 +136,7 @@ function createAccountRouter({ passport, users, accounts, frontendUrl }) {
       try {
         const storedHash = await users.findPasswordById(req.user.id);
         let googleId = null;
+        let facebookId = null;
 
         if (storedHash) {
           if (
@@ -149,16 +150,19 @@ function createAccountRouter({ passport, users, accounts, frontendUrl }) {
             });
           }
         } else {
-          const grant = req.session.googleDeleteGrant;
+          const googleGrant = req.session.googleDeleteGrant;
+          const facebookGrant = req.session.facebookDeleteGrant;
 
-          if (!validBinding(grant, req.user)) {
+          if (validBinding(googleGrant, req.user)) {
+            googleId = googleGrant.googleId;
+          } else if (validBinding(facebookGrant, req.user)) {
+            facebookId = facebookGrant.facebookId;
+          } else {
             return res.status(403).json({
               message:
-                "A törlés előtt kattints a Google-fiók ellenőrzése gombra, és válaszd a fiókodhoz kapcsolt Google-fiókot.",
+                "A törlés előtt ellenőrizd a fiókodhoz kapcsolt Google- vagy Facebook-fiókot.",
             });
           }
-
-          googleId = grant.googleId;
         }
 
         const deleted = await accounts.deleteAccount({
@@ -166,6 +170,7 @@ function createAccountRouter({ passport, users, accounts, frontendUrl }) {
           version: req.user.auth_version,
           expectedPasswordHash: storedHash,
           googleId,
+          facebookId,
         });
 
         if (!deleted) {

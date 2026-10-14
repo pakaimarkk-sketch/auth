@@ -19,11 +19,19 @@ function configureFacebook(passport, { facebook, externalAccounts }) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
-          const user = await externalAccounts.findFacebookUser(profile.id);
-
-          if (!user) {
+          if (!profile.id) {
             return done(null, false);
           }
+
+          const rawEmail = profile.emails?.[0]?.value;
+
+          const user = await externalAccounts.findOrCreateFacebookUser({
+            providerUserId: profile.id,
+            email:
+              typeof rawEmail === "string"
+                ? rawEmail.trim().toLowerCase()
+                : null,
+          });
 
           done(null, user);
         } catch (error) {
@@ -51,6 +59,26 @@ function configureFacebook(passport, { facebook, externalAccounts }) {
         done(null, {
           providerUserId: profile.id,
           email: email.trim().toLowerCase(),
+        });
+      },
+    ),
+  );
+
+  passport.use(
+    "facebook-delete",
+    new FacebookStrategy(
+      {
+        ...common,
+        callbackURL: facebook.deleteCallbackUrl,
+        sessionKey: "oauth2:facebook-delete",
+      },
+      (accessToken, refreshToken, profile, done) => {
+        if (!profile.id) {
+          return done(null, false);
+        }
+
+        done(null, {
+          providerUserId: profile.id,
         });
       },
     ),

@@ -34,6 +34,7 @@ const auth = createAuth({
     appSecret: process.env.FACEBOOK_APP_SECRET,
     callbackUrl: process.env.FACEBOOK_CALLBACK_URL,
     linkCallbackUrl: process.env.FACEBOOK_LINK_CALLBACK_URL,
+    deleteCallbackUrl: process.env.FACEBOOK_DELETE_CALLBACK_URL,
   },
   frontendUrl: process.env.FRONTEND_URL,
 });

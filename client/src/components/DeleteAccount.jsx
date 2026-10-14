@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { deleteAccount, startGoogleDeleteCheck } from "../api/auth";
+import {
+  deleteAccount,
+  startGoogleDeleteCheck,
+  startFacebookDeleteCheck,
+} from "../api/auth";
 
 export default function DeleteAccount() {
   const [password, setPassword] = useState("");
@@ -14,12 +18,31 @@ export default function DeleteAccount() {
       "success",
   );
 
+  const [facebookChecked] = useState(
+    () =>
+      new URLSearchParams(window.location.search).get("facebookDeleteCheck") ===
+      "success",
+  );
+
   async function handleGoogleCheck() {
     setError("");
     setLoading(true);
 
     try {
       const data = await startGoogleDeleteCheck();
+      window.location.assign(data.startUrl);
+    } catch (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+  }
+
+  async function handleFacebookCheck() {
+    setError("");
+    setLoading(true);
+
+    try {
+      const data = await startFacebookDeleteCheck();
       window.location.assign(data.startUrl);
     } catch (error) {
       setError(error.message);

@@ -126,6 +126,10 @@ export function startFacebookLink(password) {
   return postAuth("/facebook/link", { password });
 }
 
+export function startFacebookDeleteCheck() {
+  return postAuth("/account/delete/facebook");
+}
+
 export function deleteAccount(password, confirmation) {
   return postAuth("/account/delete", {
     password,
