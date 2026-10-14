@@ -1,0 +1,9 @@
+.auth-demo {
+  min-height: calc(100svh - 16px);
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 48px);
+  box-sizing: border-box;
+}
+

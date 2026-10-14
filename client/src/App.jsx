@@ -1,4 +1,6 @@
 import { useState } from "react";
+import AuthCard from "./components/AuthCard";
+import "./App.css";
 import { AuthProvider, useAuth } from "./auth/AuthContext";
 import LogIn from "./components/LogIn";
 import SignUp from "./components/SignUp";
@@ -201,10 +203,22 @@ function AuthScreen() {
   );
 }
 
+function AuthDemo() {
+  const { user } = useAuth();
+  return (
+    <div className="auth-demo">
+      <AuthCard variant={user ? "account" : "entry"}>
+        <AuthScreen />
+      </AuthCard>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <AuthScreen />
+      <AuthDemo />
     </AuthProvider>
   );
 }
+
